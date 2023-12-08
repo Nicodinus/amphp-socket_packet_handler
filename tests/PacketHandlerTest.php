@@ -9,7 +9,6 @@ use Amp\Socket\Server;
 use Nicodinus\SocketPacketHandler\AbstractPacketHandler;
 use Nicodinus\SocketPacketHandler\AbstractRequestPacket;
 use Nicodinus\SocketPacketHandler\PacketInterface;
-use Nicodinus\SocketPacketHandler\RequestPacketInterface;
 use function Amp\asyncCall;
 
 class PacketHandlerTest extends AsyncTestCase

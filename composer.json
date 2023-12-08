@@ -23,8 +23,7 @@
   "require": {
     "php": ">=7.4",
     "amphp/amp": "^2.6",
-    "amphp/socket": "^1.2",
-    "psr/log": "^3.0"
+    "amphp/socket": "^1.2"
   },
   "require-dev": {
     "larapack/dd": "^1.1",
