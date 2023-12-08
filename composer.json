@@ -1,0 +1,36 @@
+{
+  "name": "nicodinus/amphp-socket_packet_handler",
+  "homepage": "https://github.com/nicodinus/amphp-socket_packet_handler",
+  "description": "",
+  "type": "lib",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Nicodinus",
+      "email": "nicodinus@yandex.ru"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Nicodinus\\SocketPacketHandler\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Nicodinus\\SocketPacketHandler\\Tests\\": "tests"
+    }
+  },
+  "require": {
+    "php": ">=7.4",
+    "amphp/amp": "^2.6",
+    "amphp/socket": "^1.2",
+    "psr/log": "^3.0"
+  },
+  "require-dev": {
+    "larapack/dd": "^1.1",
+    "phpunit/phpunit": "^9.5",
+    "amphp/phpunit-util": "^2.0"
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
