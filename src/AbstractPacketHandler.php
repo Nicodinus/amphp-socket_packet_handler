@@ -215,10 +215,10 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
                 }
 
                 if (\is_a($packet, CanHandlePacket::class, true)) {
-                    yield call(\Closure::fromCallable([&$packet, 'handle']));
+                    yield call(\Closure::fromCallable([&$packet, 'handle']), $requestId);
                 }
 
-                yield call(\Closure::fromCallable([&$this, '_handlePacket']), $packet);
+                yield call(\Closure::fromCallable([&$this, '_handlePacket']), $packet, $requestId);
 
                 if ($requestId) {
                     $this->_resolveResponse($requestId, $packet);
@@ -247,9 +247,12 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
     protected abstract function _createPacket(string $packetClassname, ?string $requestId = null, $data = null): ?PacketInterface;
 
     /**
+     * @param PacketInterface $packet
+     * @param string|null $requestId
+     *
      * @return callable|\Generator|Coroutine|Promise|mixed
      */
-    protected abstract function _handlePacket(PacketInterface $packet);
+    protected abstract function _handlePacket(PacketInterface $packet, ?string $requestId = null);
 
     /**
      * @param string $data

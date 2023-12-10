@@ -68,7 +68,7 @@ class PacketHandlerTest extends AsyncTestCase
             /**
              * @inheritDoc
              */
-            protected function _handlePacket(PacketInterface $packet): ?\Generator
+            protected function _handlePacket(PacketInterface $packet, ?string $requestId = null): ?\Generator
             {
                 yield $this->emitter->emit($packet);
             }
