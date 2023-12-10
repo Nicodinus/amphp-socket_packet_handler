@@ -85,26 +85,30 @@ abstract class AbstractSocketHandler
                     }
                     $data .= $chunk;
 
-                    if ($headerPos === false) {
+                    while (true) {
 
-                        $headerPos = \strpos($data, $this->packetHeader);
                         if ($headerPos === false) {
-                            $data = "";
-                            continue;
+
+                            $headerPos = \strpos($data, $this->packetHeader);
+                            if ($headerPos === false) {
+                                $data = "";
+                                continue 2;
+                            }
+
                         }
 
+                        $footerPos = \strpos($data, $this->packetFooter, $headerPos + \strlen($this->packetHeader));
+                        if ($footerPos === false) {
+                            continue 2;
+                        }
+
+                        $packet = \substr($data, $headerPos + \strlen($this->packetHeader), $footerPos - $headerPos - \strlen($this->packetFooter));
+                        $data = \substr($data, $footerPos + \strlen($this->packetFooter));
+                        $headerPos = false;
+
+                        yield call($_handleCallable, $packet);
+
                     }
-
-                    $footerPos = \strpos($data, $this->packetFooter, $headerPos + \strlen($this->packetHeader));
-                    if ($footerPos === false) {
-                        continue;
-                    }
-
-                    $packet = \substr($data, $headerPos + \strlen($this->packetHeader), $footerPos - $headerPos - \strlen($this->packetFooter));
-                    $data = \substr($data, $footerPos + \strlen($this->packetFooter));
-                    $headerPos = false;
-
-                    yield call($_handleCallable, $packet);
 
                 }
 
