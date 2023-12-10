@@ -81,7 +81,6 @@ abstract class AbstractSocketHandler
         }
 
         $this->socket->close();
-        $this->_onClosed();
     }
 
     /**
