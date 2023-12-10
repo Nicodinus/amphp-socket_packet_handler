@@ -76,7 +76,7 @@ abstract class AbstractSocketHandler
      */
     public function close(): void
     {
-        if (!$this->isClosed()) {
+        if ($this->isClosed()) {
             return;
         }
 
