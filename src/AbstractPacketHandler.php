@@ -193,6 +193,8 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
     {
         return call(function () use (&$data) {
 
+            $requestId = null;
+
             try {
 
                 $packet = $this->_unserializePacket($data);
