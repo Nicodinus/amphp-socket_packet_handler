@@ -17,4 +17,11 @@ interface CanSendPacket
      * @throws SerializationException
      */
     public function send(): Promise;
+
+    /**
+     * @param int $responseTimeoutSeconds Value less than 1 equals infinity timeout
+     *
+     * @return Promise<PacketInterface|null>
+     */
+    public function sendWaitResponse(int $responseTimeoutSeconds = 5): Promise;
 }

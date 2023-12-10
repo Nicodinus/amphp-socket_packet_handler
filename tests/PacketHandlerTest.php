@@ -6,6 +6,7 @@ use Amp\Emitter;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket;
 use Amp\Socket\Server;
+use Nicodinus\SocketPacketHandler\AbstractPacket;
 use Nicodinus\SocketPacketHandler\AbstractPacketHandler;
 use Nicodinus\SocketPacketHandler\AbstractRequestPacket;
 use Nicodinus\SocketPacketHandler\PacketInterface;
@@ -21,7 +22,7 @@ class PacketHandlerTest extends AsyncTestCase
      */
     protected function createRequestPacket1(AbstractPacketHandler $packetHandler, $data = null): AbstractRequestPacket
     {
-        $clz = new class extends AbstractRequestPacket {
+        return new class ($packetHandler, $data) extends AbstractRequestPacket {
             /**
              * @inheritDoc
              */
@@ -30,8 +31,6 @@ class PacketHandlerTest extends AsyncTestCase
                 return "test_packet";
             }
         };
-
-        return $clz::create($packetHandler, $data);
     }
 
     /**
@@ -102,6 +101,14 @@ class PacketHandlerTest extends AsyncTestCase
                     'request_id' => $requestId,
                     'data' => $data,
                 ]);
+            }
+
+            /**
+             * @inheritDoc
+             */
+            protected function _createPacket(string $packetClassname, ?string $requestId = null, $data = null): ?PacketInterface
+            {
+                return new $packetClassname($this, $data);
             }
 
         };

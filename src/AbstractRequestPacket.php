@@ -13,4 +13,12 @@ abstract class AbstractRequestPacket extends AbstractPacket implements RequestPa
     {
         return $this->packetHandler->sendPacket($this);
     }
+
+    /**
+     * @inheritDoc
+     */
+    public function sendWaitResponse(int $responseTimeoutSeconds = 5): Promise
+    {
+        return $this->packetHandler->sendPacketWithResponse($this, $responseTimeoutSeconds);
+    }
 }

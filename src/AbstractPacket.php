@@ -2,28 +2,24 @@
 
 namespace Nicodinus\SocketPacketHandler;
 
-abstract class AbstractPacket implements PacketInterface, HasPacketHandlerCreate
+abstract class AbstractPacket implements PacketInterface
 {
     /** @var AbstractPacketHandler */
     protected AbstractPacketHandler $packetHandler;
 
-    /** @var mixed */
+    /** @var mixed|null */
     protected $data;
 
     //
 
     /**
      * @param AbstractPacketHandler $packetHandler
-     * @param array $data
-     *
-     * @return self
+     * @param mixed|null $data
      */
-    public static function create(AbstractPacketHandler $packetHandler, $data = null): self
+    public function __construct(AbstractPacketHandler $packetHandler, $data = null)
     {
-        $instance = new static();
-        $instance->packetHandler = $packetHandler;
-        $instance->data = $data;
-        return $instance;
+        $this->packetHandler = $packetHandler;
+        $this->data = $data;
     }
 
     /**

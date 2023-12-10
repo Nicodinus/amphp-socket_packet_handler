@@ -10,7 +10,6 @@ use Amp\Loop;
 use Amp\Promise;
 use Amp\Serialization\SerializationException;
 use Amp\TimeoutException;
-use function Amp\asyncCall;
 use function Amp\call;
 
 abstract class AbstractPacketHandler extends AbstractSocketHandler
@@ -208,7 +207,7 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
 
             try {
 
-                $packet = $this->_createPacket($packetClassname, $packet['data'] ?? null);
+                $packet = $this->_createPacket($packetClassname, $requestId, $packet['data'] ?? null);
                 if (!$packet) {
                     throw new \RuntimeException("Can't create packet {$packetClassname}");
                 }
@@ -238,18 +237,12 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
 
     /**
      * @param class-string<PacketInterface> $packetClassname
-     * @param mixed $data
+     * @param string|null $requestId
+     * @param mixed|null $data
      *
      * @return PacketInterface|null
      */
-    protected function _createPacket(string $packetClassname, $data): ?PacketInterface
-    {
-        if (\is_a($packetClassname, HasPacketHandlerCreate::class, true)) {
-            return $packetClassname::create($this, $data);
-        }
-
-        return null;
-    }
+    protected abstract function _createPacket(string $packetClassname, ?string $requestId = null, $data = null): ?PacketInterface;
 
     /**
      * @return callable|\Generator|Coroutine|Promise|mixed
