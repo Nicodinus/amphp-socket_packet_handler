@@ -9,6 +9,8 @@ interface CanHandlePacket
 {
     /**
      * @return callable|\Generator|Coroutine|Promise|mixed
+     *
+     * @throws \Throwable
      */
     public function handle();
 }
