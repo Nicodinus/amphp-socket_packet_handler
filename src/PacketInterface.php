@@ -10,7 +10,7 @@ interface PacketInterface
     public static function getId(): ?string;
 
     /**
-     * @return mixed
+     * @return mixed|null
      */
     public function getData();
 }

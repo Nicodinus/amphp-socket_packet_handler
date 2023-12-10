@@ -5,8 +5,12 @@ namespace Nicodinus\SocketPacketHandler;
 use Amp\ByteStream\ClosedException;
 use Amp\ByteStream\StreamException;
 use Amp\Coroutine;
+use Amp\Deferred;
+use Amp\Loop;
 use Amp\Promise;
 use Amp\Serialization\SerializationException;
+use Amp\TimeoutException;
+use function Amp\asyncCall;
 use function Amp\call;
 
 abstract class AbstractPacketHandler extends AbstractSocketHandler
@@ -14,20 +18,124 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
     /** @var class-string<PacketInterface>[] */
     private array $registry = [];
 
+    /** @var array<string, array{defer: Deferred, timeout_watcher: string|null}> */
+    private array $requestDefers = [];
+
     //
+
+    /**
+     * @param int $responseTimeoutSeconds
+     *
+     * @return string
+     *
+     * @throws \Throwable
+     */
+    protected function _registerResponseDefer(int $responseTimeoutSeconds): string
+    {
+        do {
+            $requestId = \bin2hex(\random_bytes(8));
+        } while (isset($this->requestDefers[$requestId]));
+
+        $defer = new Deferred();
+        $timeoutWatcher = null;
+
+        if ($responseTimeoutSeconds > 0) {
+            $timeoutWatcher = Loop::delay($responseTimeoutSeconds * 1000, function () use (&$defer, &$requestId) {
+
+                unset($this->requestDefers[$requestId]);
+
+                if (!$defer->isResolved()) {
+                    $defer->fail(new TimeoutException());
+                }
+
+            });
+        }
+
+        $this->requestDefers[$requestId] = [
+            'defer' => $defer,
+            'timeout_watcher' => $timeoutWatcher,
+        ];
+
+        return $requestId;
+    }
+
+    /**
+     * @param string $requestId
+     *
+     * @return Deferred|null
+     */
+    protected function _getResponsePromise(string $requestId): ?Promise
+    {
+        if (!isset($this->requestDefers[$requestId])) {
+            return null;
+        }
+
+        return $this->requestDefers[$requestId]['defer']->promise();
+    }
+
+    /**
+     * @param string $requestId
+     * @param mixed|null $value
+     * @param \Throwable|null $throwable
+     *
+     * @return void
+     */
+    protected function _resolveResponse(string $requestId, $value = null, ?\Throwable $throwable = null): void
+    {
+        if (!isset($this->requestDefers[$requestId])) {
+            return;
+        }
+
+        if ($this->requestDefers[$requestId]['timeout_watcher']) {
+            Loop::cancel($this->requestDefers[$requestId]['timeout_watcher']);
+        }
+
+        $defer = $this->requestDefers[$requestId]['defer'];
+        unset($this->requestDefers[$requestId]);
+
+        if (!$throwable) {
+            $defer->resolve($value);
+        } else {
+            $defer->fail($throwable);
+        }
+    }
+
+    /**
+     * @param RequestPacketInterface $packet
+     * @param int $responseTimeoutSeconds Value less than 1 equals infinity timeout
+     *
+     * @return Promise<PacketInterface|null>
+     */
+    public function sendPacketWithResponse(RequestPacketInterface $packet, int $responseTimeoutSeconds = 5): Promise
+    {
+        return call(function () use (&$packet, &$responseTimeoutSeconds) {
+
+            $requestId = $this->_registerResponseDefer($responseTimeoutSeconds);
+
+            yield $this->send($this->_serializePacket($packet::getId(), $requestId, $packet->getData()));
+
+            $responsePromise = $this->_getResponsePromise($requestId);
+            if (!$responsePromise) {
+                throw new \RuntimeException("Can't wait response packet, empty defer!");
+            }
+
+            return $responsePromise->promise();
+
+        });
+    }
 
     /**
      * @param RequestPacketInterface $packet
      *
      * @return Promise<int>
      *
-     * @throws SerializationException
      * @throws ClosedException
      * @throws StreamException
+     * @throws SerializationException
      */
     public function sendPacket(RequestPacketInterface $packet): Promise
     {
-        return $this->send($this->_serializePacket($packet));
+        return $this->send($this->_serializePacket($packet::getId(), null, $packet->getData()));
     }
 
     /**
@@ -86,17 +194,19 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
     {
         return call(function () use (&$data) {
 
+            $packet = $this->_unserializePacket($data);
+            if (!$packet) {
+                return null;
+            }
+
+            $packetClassname = $this->findPacket($packet['id']);
+            if (!$packetClassname) {
+                return null;
+            }
+
+            $requestId = $packet['request_id'] ?? null;
+
             try {
-
-                $packet = $this->_unserializePacket($data);
-                if (!$packet) {
-                    return null;
-                }
-
-                $packetClassname = $this->findPacket($packet['id']);
-                if (!$packetClassname) {
-                    return null;
-                }
 
                 $packet = $this->_createPacket($packetClassname, $packet['data'] ?? null);
                 if (!$packet) {
@@ -109,8 +219,18 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
 
                 yield call(\Closure::fromCallable([&$this, '_handlePacket']), $packet);
 
+                if ($requestId) {
+                    $this->_resolveResponse($requestId, $packet);
+                }
+
             } catch (\Throwable $exception) {
+
+                if ($requestId) {
+                    $this->_resolveResponse($requestId, null, $exception);
+                }
+
                 $this->_handleException($exception);
+
             }
 
         });
@@ -139,20 +259,22 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
     /**
      * @param string $data
      *
-     * @return array{id: string, data: mixed|null}|null
+     * @return array{id: string, request_id: string|null, data: mixed|null}|null
      *
      * @throws SerializationException
      */
     protected abstract function _unserializePacket(string $data): ?array;
 
     /**
-     * @param PacketInterface $packet
+     * @param string $id
+     * @param string|null $requestId
+     * @param mixed|null $data
      *
      * @return string
      *
      * @throws SerializationException
      */
-    protected abstract function _serializePacket(PacketInterface $packet): string;
+    protected abstract function _serializePacket(string $id, ?string $requestId = null, $data = null): string;
 
     /**
      * @param \Throwable $throwable

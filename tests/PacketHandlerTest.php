@@ -87,6 +87,7 @@ class PacketHandlerTest extends AsyncTestCase
 
                 return [
                     'id' => $data['id'],
+                    'request_id' => $data['request_id'] ?? null,
                     'data' => $data['data'] ?? null,
                 ];
             }
@@ -94,11 +95,12 @@ class PacketHandlerTest extends AsyncTestCase
             /**
              * @inheritDoc
              */
-            protected function _serializePacket(PacketInterface $packet): string
+            protected function _serializePacket(string $id, ?string $requestId = null, $data = null): string
             {
                 return \serialize([
-                    'id' => $packet::getId() ?? \get_class($packet),
-                    'data' => $packet->getData(),
+                    'id' => $id,
+                    'request_id' => $requestId,
+                    'data' => $data,
                 ]);
             }
 
