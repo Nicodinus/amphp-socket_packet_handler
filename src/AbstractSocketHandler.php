@@ -28,15 +28,23 @@ abstract class AbstractSocketHandler
 
             $_handleCallable = \Closure::fromCallable([&$this, '_handle']);
 
-            while (!$this->socket->isClosed()) {
+            try {
 
-                $data = yield $this->socket->read();
-                if (!$data) {
-                    continue;
+                while (!$this->socket->isClosed()) {
+
+                    $data = yield $this->socket->read();
+                    if (!$data) {
+                        continue;
+                    }
+
+                    yield call($_handleCallable, $data);
+
                 }
 
-                yield call($_handleCallable, $data);
+                $this->_onClosed();
 
+            } catch (\Throwable $exception) {
+                $this->_onClosed($exception);
             }
 
         });
@@ -69,6 +77,7 @@ abstract class AbstractSocketHandler
     public function close(): void
     {
         $this->socket->close();
+        $this->_onClosed();
     }
 
     /**
@@ -77,6 +86,18 @@ abstract class AbstractSocketHandler
     public function getRemoteAddress(): Socket\SocketAddress
     {
         return $this->socket->getRemoteAddress();
+    }
+
+    /**
+     * @param \Throwable|null $throwable
+     *
+     * @return void
+     */
+    protected function _onClosed(?\Throwable $throwable = null): void
+    {
+        if ($throwable) {
+            throw $throwable;
+        }
     }
 
     /**
