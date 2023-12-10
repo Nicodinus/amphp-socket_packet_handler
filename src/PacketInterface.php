@@ -13,4 +13,9 @@ interface PacketInterface
      * @return mixed|null
      */
     public function getData();
+
+    /**
+     * @return string|null
+     */
+    public function getRequestId(): ?string;
 }

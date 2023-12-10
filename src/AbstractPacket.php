@@ -10,16 +10,21 @@ abstract class AbstractPacket implements PacketInterface
     /** @var mixed|null */
     protected $data;
 
+    /** @var string|null */
+    private ?string $requestId;
+
     //
 
     /**
      * @param AbstractPacketHandler $packetHandler
      * @param mixed|null $data
+     * @param string|null $requestId
      */
-    public function __construct(AbstractPacketHandler $packetHandler, $data = null)
+    public function __construct(AbstractPacketHandler $packetHandler, $data = null, ?string $requestId = null)
     {
         $this->packetHandler = $packetHandler;
         $this->data = $data;
+        $this->requestId = $requestId;
     }
 
     /**
@@ -28,5 +33,13 @@ abstract class AbstractPacket implements PacketInterface
     public function getData()
     {
         return $this->data;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getRequestId(): ?string
+    {
+        return $this->requestId;
     }
 }

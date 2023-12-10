@@ -118,7 +118,7 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
                 throw new \RuntimeException("Can't wait response packet, empty defer!");
             }
 
-            return $responsePromise->promise();
+            return $responsePromise;
 
         });
     }
@@ -134,7 +134,7 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
      */
     public function sendPacket(RequestPacketInterface $packet): Promise
     {
-        return $this->send($this->_serializePacket($packet::getId(), null, $packet->getData()));
+        return $this->send($this->_serializePacket($packet::getId(), $packet->getRequestId(), $packet->getData()));
     }
 
     /**
