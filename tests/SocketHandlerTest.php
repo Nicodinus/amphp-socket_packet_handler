@@ -54,6 +54,23 @@ class SocketHandlerTest extends AsyncTestCase
                         {
                             $this->testReadyDefer->resolve($data);
                         }
+
+                        /**
+                         * @inheritDoc
+                         */
+                        protected function _handleException(\Throwable $throwable): void
+                        {
+                            //
+                        }
+
+                        /**
+                         * @inheritDoc
+                         */
+                        protected function _onClosed(): void
+                        {
+                            //
+                        }
+
                     };
 
                     yield $testReadyDefer->promise();

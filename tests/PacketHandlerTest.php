@@ -110,6 +110,14 @@ class PacketHandlerTest extends AsyncTestCase
                 return new $packetClassname($this, $data);
             }
 
+            /**
+             * @inheritDoc
+             */
+            protected function _onClosed(): void
+            {
+                //
+            }
+
         };
     }
 

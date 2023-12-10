@@ -270,11 +270,4 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
      * @throws SerializationException
      */
     protected abstract function _serializePacket(string $id, ?string $requestId = null, $data = null): string;
-
-    /**
-     * @param \Throwable $throwable
-     *
-     * @return void
-     */
-    protected abstract function _handleException(\Throwable $throwable): void;
 }

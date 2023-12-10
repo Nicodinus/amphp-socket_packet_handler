@@ -41,10 +41,10 @@ abstract class AbstractSocketHandler
 
                 }
 
-                $this->_onClosed();
-
             } catch (\Throwable $exception) {
-                $this->_onClosed($exception);
+                $this->_handleException($exception);
+            } finally {
+                $this->_onClosed();
             }
 
         });
@@ -76,6 +76,10 @@ abstract class AbstractSocketHandler
      */
     public function close(): void
     {
+        if (!$this->isClosed()) {
+            return;
+        }
+
         $this->socket->close();
         $this->_onClosed();
     }
@@ -89,16 +93,16 @@ abstract class AbstractSocketHandler
     }
 
     /**
-     * @param \Throwable|null $throwable
+     * @param \Throwable $throwable
      *
      * @return void
      */
-    protected function _onClosed(?\Throwable $throwable = null): void
-    {
-        if ($throwable) {
-            throw $throwable;
-        }
-    }
+    protected abstract function _handleException(\Throwable $throwable): void;
+
+    /**
+     * @return void
+     */
+    protected abstract function _onClosed(): void;
 
     /**
      * @param string $data
