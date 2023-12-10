@@ -14,11 +14,24 @@ use function Amp\delay;
 
 abstract class AbstractSocketHandler
 {
+    const PACKET_HEADER = [
+        1, 0, 3, 0, 3, 0, 7, 0,
+    ];
+    const PACKET_FOOTER = [
+        4, 0, 6, 0, 5, 0, 9, 0,
+    ];
+
+    /** @var int */
+    const PACKET_MAX_SIZE = 4 * 1000 * 1000;
+
     /** @var Socket\Socket */
     private Socket\Socket $socket;
 
-    /** @var array<array{data: string, defer: Deferred}> */
-    private array $sendQueue;
+    /** @var string */
+    private string $packetHeader;
+
+    /** @var string */
+    private string $packetFooter;
 
     //
 
@@ -28,7 +41,28 @@ abstract class AbstractSocketHandler
     public function __construct(Socket\Socket $socket)
     {
         $this->socket = $socket;
-        $this->sendQueue = [];
+
+        $this->packetHeader = "";
+        foreach (self::PACKET_HEADER as $v) {
+            if (\is_string($v)) {
+                $this->packetHeader .= $v;
+            } else if (\is_integer($v)) {
+                $this->packetHeader .= \chr($v);
+            } else {
+                throw new \InvalidArgumentException("Unsupported type for PACKET_HEADER!");
+            }
+        }
+
+        $this->packetFooter = "";
+        foreach (self::PACKET_FOOTER as $v) {
+            if (\is_string($v)) {
+                $this->packetFooter .= $v;
+            } else if (\is_integer($v)) {
+                $this->packetFooter .= \chr($v);
+            } else {
+                throw new \InvalidArgumentException("Unsupported type for PACKET_FOOTER!");
+            }
+        }
 
         asyncCall(function () {
 
@@ -36,14 +70,41 @@ abstract class AbstractSocketHandler
 
             try {
 
+                $data = "";
+                $headerPos = false;
+
                 while (!$this->socket->isClosed()) {
 
-                    $data = yield $this->socket->read();
-                    if (!$data) {
+                    $chunk = yield $this->socket->read();
+                    if (!$chunk) {
                         continue;
                     }
 
-                    yield call($_handleCallable, $data);
+                    if (\strlen($chunk) + \strlen($data) > self::PACKET_MAX_SIZE) {
+                        throw new \RuntimeException("Processed data length is greater than limit " . self::PACKET_MAX_SIZE);
+                    }
+                    $data .= $chunk;
+
+                    if ($headerPos === false) {
+
+                        $headerPos = \strpos($data, $this->packetHeader);
+                        if ($headerPos === false) {
+                            $data = "";
+                            continue;
+                        }
+
+                    }
+
+                    $footerPos = \strpos($data, $this->packetFooter, $headerPos + \strlen($this->packetHeader));
+                    if ($footerPos === false) {
+                        continue;
+                    }
+
+
+                    $packet = \substr($data, $headerPos + \strlen($this->packetHeader), $footerPos - $headerPos - \strlen($this->packetFooter));
+                    $data = \substr($data, $footerPos + \strlen($this->packetFooter));
+
+                    yield call($_handleCallable, $packet);
 
                 }
 
@@ -66,44 +127,7 @@ abstract class AbstractSocketHandler
      */
     public function send(string $data): Promise
     {
-        if ($this->socket->isClosed()) {
-            throw new ClosedException();
-        }
-
-        //return $this->socket->write($data);
-
-        $defer = new Deferred();
-        $this->sendQueue[] = [
-            'data' => $data,
-            'defer' => $defer,
-        ];
-
-        asyncCall(function () {
-
-            while (!$this->isClosed() && \sizeof($this->sendQueue) > 0) {
-
-                /** @var array{data: string, defer: Deferred} $item */
-                $item = \array_shift($this->sendQueue);
-
-                try {
-                    $item['defer']->resolve(yield $this->socket->write($item['data']));
-                } catch (\Throwable $exception) {
-                    $item['defer']->fail($exception);
-                }
-
-                yield delay(10);
-
-            }
-
-            $exception = new ClosedException();
-            foreach ($this->sendQueue as $item) {
-                $item['defer']->fail($exception);
-            }
-            $this->sendQueue = [];
-
-        });
-
-        return $defer->promise();
+        return $this->socket->write( $this->packetHeader . $data . $this->packetFooter);
     }
 
     /**

@@ -129,6 +129,8 @@ class PacketHandlerTest extends AsyncTestCase
      */
     public function testPacketHandler1(): \Generator
     {
+        $this->setTimeout(3000);
+
         $serverSocket = Server::listen("127.0.0.1:0");
         $emitter = new Emitter();
 
