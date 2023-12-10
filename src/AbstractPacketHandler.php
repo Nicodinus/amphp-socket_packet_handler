@@ -193,19 +193,19 @@ abstract class AbstractPacketHandler extends AbstractSocketHandler
     {
         return call(function () use (&$data) {
 
-            $packet = $this->_unserializePacket($data);
-            if (!$packet) {
-                return null;
-            }
-
-            $packetClassname = $this->findPacket($packet['id']);
-            if (!$packetClassname) {
-                return null;
-            }
-
-            $requestId = $packet['request_id'] ?? null;
-
             try {
+
+                $packet = $this->_unserializePacket($data);
+                if (!$packet) {
+                    return null;
+                }
+
+                $packetClassname = $this->findPacket($packet['id']);
+                if (!$packetClassname) {
+                    return null;
+                }
+
+                $requestId = $packet['request_id'] ?? null;
 
                 $packet = $this->_createPacket($packetClassname, $requestId, $packet['data'] ?? null);
                 if (!$packet) {

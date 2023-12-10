@@ -6,7 +6,6 @@ use Amp\Emitter;
 use Amp\PHPUnit\AsyncTestCase;
 use Amp\Socket;
 use Amp\Socket\Server;
-use Nicodinus\SocketPacketHandler\AbstractPacket;
 use Nicodinus\SocketPacketHandler\AbstractPacketHandler;
 use Nicodinus\SocketPacketHandler\AbstractRequestPacket;
 use Nicodinus\SocketPacketHandler\PacketInterface;
