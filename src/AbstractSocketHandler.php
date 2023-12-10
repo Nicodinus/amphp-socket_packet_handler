@@ -100,9 +100,9 @@ abstract class AbstractSocketHandler
                         continue;
                     }
 
-
                     $packet = \substr($data, $headerPos + \strlen($this->packetHeader), $footerPos - $headerPos - \strlen($this->packetFooter));
                     $data = \substr($data, $footerPos + \strlen($this->packetFooter));
+                    $headerPos = false;
 
                     yield call($_handleCallable, $packet);
 
