@@ -5,15 +5,20 @@ namespace Nicodinus\SocketPacketHandler;
 use Amp\ByteStream\ClosedException;
 use Amp\ByteStream\StreamException;
 use Amp\Coroutine;
+use Amp\Deferred;
 use Amp\Promise;
 use Amp\Socket;
 use function Amp\asyncCall;
 use function Amp\call;
+use function Amp\delay;
 
 abstract class AbstractSocketHandler
 {
     /** @var Socket\Socket */
     private Socket\Socket $socket;
+
+    /** @var array<array{data: string, defer: Deferred}> */
+    private array $sendQueue;
 
     //
 
@@ -23,6 +28,7 @@ abstract class AbstractSocketHandler
     public function __construct(Socket\Socket $socket)
     {
         $this->socket = $socket;
+        $this->sendQueue = [];
 
         asyncCall(function () {
 
@@ -60,7 +66,44 @@ abstract class AbstractSocketHandler
      */
     public function send(string $data): Promise
     {
-        return $this->socket->write($data);
+        if ($this->socket->isClosed()) {
+            throw new ClosedException();
+        }
+
+        //return $this->socket->write($data);
+
+        $defer = new Deferred();
+        $this->sendQueue[] = [
+            'data' => $data,
+            'defer' => $defer,
+        ];
+
+        asyncCall(function () {
+
+            while (!$this->isClosed() && \sizeof($this->sendQueue) > 0) {
+
+                /** @var array{data: string, defer: Deferred} $item */
+                $item = \array_shift($this->sendQueue);
+
+                try {
+                    $item['defer']->resolve(yield $this->socket->write($item['data']));
+                } catch (\Throwable $exception) {
+                    $item['defer']->fail($exception);
+                }
+
+                yield delay(10);
+
+            }
+
+            $exception = new ClosedException();
+            foreach ($this->sendQueue as $item) {
+                $item['defer']->fail($exception);
+            }
+            $this->sendQueue = [];
+
+        });
+
+        return $defer->promise();
     }
 
     /**

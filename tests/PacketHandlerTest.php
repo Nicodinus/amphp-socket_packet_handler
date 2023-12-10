@@ -10,6 +10,7 @@ use Nicodinus\SocketPacketHandler\AbstractPacketHandler;
 use Nicodinus\SocketPacketHandler\AbstractRequestPacket;
 use Nicodinus\SocketPacketHandler\PacketInterface;
 use function Amp\asyncCall;
+use function Amp\delay;
 
 class PacketHandlerTest extends AsyncTestCase
 {
@@ -196,5 +197,7 @@ class PacketHandlerTest extends AsyncTestCase
         } finally {
             $serverSocket->close();
         }
+
+        yield delay(100);
     }
 }
